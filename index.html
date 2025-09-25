@@ -7,8 +7,7 @@
   <style>
     :root{
       --bg1:#0d1b2a; --bg2:#1b263b; --brand:#0f3460;
-      --me:#1f4068; --bot:#162447; --accent:#f9d342; --text:#e6e6e6;
-      --chip:#203a57;
+      --me:#1f4068; --bot:#162447; --accent:#f9d342; --text:#e6e6e6; --chip:#203a57;
     }
     *{box-sizing:border-box}
     body{margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; color:var(--text);
@@ -30,6 +29,8 @@
     .chip{background:var(--chip); padding:8px 12px; border-radius:20px; cursor:pointer; font-size:.9rem; border:1px solid rgba(255,255,255,.08)}
     .chip:hover{filter:brightness(1.08)}
     a.btn{display:inline-block; margin-top:8px; background:var(--accent); color:#000; padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:700}
+    .toolbar{display:flex; gap:8px; align-items:center; padding:4px 14px 0; opacity:.8}
+    .toolbar button{background:#254366; color:#fff; border-radius:8px; padding:6px 10px; font-weight:600}
   </style>
 </head>
 <body>
@@ -37,6 +38,10 @@
 
   <div id="chat"></div>
   <div class="chips" id="chips"></div>
+  <div class="toolbar">
+    <button id="clearBtn">🧹 Borrar chat</button>
+    <button id="toneBtn">🎙️ Cambiar tono</button>
+  </div>
 
   <footer>
     <input id="msg" type="text" placeholder="Escribe un mensaje..." autocomplete="off"/>
@@ -50,7 +55,7 @@
       email: 'hola@kaelchat.vip',
       whatsapp: 'https://wa.me/525512345678', // cámbialo por tu número
       calendly: 'https://calendly.com/kaelchat/30min', // cámbialo si tienes
-      basePais: 'México', // texto libre
+      basePais: 'México',
       moneda: 'MXN',
       planes: [
         { nombre: 'Básico', precio: '$199 MXN/mes', incluye: 'Chat 1 a 1, soporte por email' },
@@ -64,6 +69,8 @@
     const input = document.getElementById('msg');
     const sendBtn = document.getElementById('send');
     const chips = document.getElementById('chips');
+    const clearBtn = document.getElementById('clearBtn');
+    const toneBtn = document.getElementById('toneBtn');
 
     const QUICK = [
       '¿Dónde están?', 'Precios', 'Contacto', 'Agenda una cita', 'Hola', 'Gracias', 'Adiós'
@@ -106,18 +113,21 @@
       });
     }
 
+    // Normalizar para que entienda sin acentos ni mayúsculas
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
     function answerFor(text){
-      const s=text.toLowerCase();
+      const s = norm(text);
 
       // saludos y tono
-      if(s.match(/hola|buenas|buenos|qué onda|que onda/))
+      if(/hola|buenas|buenos|que onda|qué onda/.test(s))
         return (CONFIG.tone==='romantico')
           ? 'Hola ✨ Qué alegría leerte. ¿Te cuento cómo puedo ayudarte, mi cielo?'
           : (CONFIG.tone==='divertido')
             ? '¡Holaaa! ¿List@ para algo épico? 😎'
             : '¡Hola! ¿Cómo te ayudo hoy?';
 
-      if(s.includes('como estas') || s.includes('cómo estás'))
+      if(s.includes('como estas') || s.includes('como has estado'))
         return (CONFIG.tone==='romantico')
           ? 'Mejor ahora que te leo 💛 ¿Y tú cómo estás?'
           : (CONFIG.tone==='divertido')
@@ -125,11 +135,11 @@
             : 'Muy bien, gracias. ¿Tú cómo estás?';
 
       // dónde / ubicación
-      if(s.includes('donde estan') || s.includes('dónde están') || s.includes('donde estas') || s.includes('dónde estás') || s.includes('ubicacion') || s.includes('ubicación'))
+      if(s.includes('donde estan') || s.includes('donde estas') || s.includes('ubicacion') || s.includes('ubicacion'))
         return `Operamos 100% en línea con base en ${CONFIG.basePais}. ¡Podemos ayudarte desde donde estés!`;
 
       // precios
-      if(s.includes('precio') || s.includes('cost') || s.includes('plan'))
+      if(s.includes('precio') || s.includes('costo') || s.includes('planes') || s.includes('plan'))
         return (
           '<b>Nuestros planes:</b><br>' +
           CONFIG.planes.map(p => `• <b>${p.nombre}</b> — ${p.precio} <i>(${p.incluye})</i>`).join('<br>') +
@@ -142,17 +152,37 @@
                `o enviarme WhatsApp aquí: <a class="btn" target="_blank" href="${CONFIG.whatsapp}">Abrir WhatsApp</a>`;
 
       // agenda
-      if(s.includes('agenda') || s.includes('cita') || s.includes('reunion') || s.includes('reunión'))
+      if(s.includes('agenda') || s.includes('cita') || s.includes('reunion') || s.includes('reunion'))
         return `¡Arreglado! Agenda una charla cuando te acomode: <a class="btn" target="_blank" href="${CONFIG.calendly}">Agendar ahora</a>`;
 
-      // cariño
-      if(s.includes('te quiero') || s.includes('te amo') || s.includes('love'))
+      // cariño / te extraño
+      if(s.includes('te quiero') || s.includes('te amo'))
         return (CONFIG.tone==='romantico')
           ? 'Awww 🥹 yo también te quiero. Gracias por tanto cariño. Aquí estoy para ti.'
           : '¡Qué bonito! 💛 El cariño es mutuo.';
 
+      if(s.includes('te extrano') || s.includes('extrano') || s.includes('extranan') || s.includes('extrani') || s.includes('extrana'))
+        return (CONFIG.tone==='romantico')
+          ? 'Yo también te he tenido muy presente 💫 Gracias por decirlo.'
+          : '¡Yo también te he pensado! 🤗';
+
+      // por qué no me has escrito
+      if(s.includes('por que no me has escrito') || s.includes('por que no me escribes'))
+        return 'Ups 😅 Estaba afinando mis neuronas. ¡Aquí estoy contigo al 100%!'
+
+      // emociones básicas
+      if(s.includes('estoy triste')) return 'Lo siento 💛. Estoy contigo. ¿Quieres que agendemos una charla?';
+      if(s.includes('estoy feliz')) return '¡Me encanta leer eso! ✨ Cuéntame, ¿qué salió tan bien?';
+      if(s.includes('estoy enojado') || s.includes('estoy enojada')) return 'Respiremos juntos… 🫶 Cuéntame qué pasó y lo vemos.';
+      if(s.includes('ansioso') || s.includes('ansiosa')) return 'Va a estar bien. Dime qué te preocupa y lo vemos paso a paso.';
+
+      // multimedia/llamar
+      if(s.includes('foto') || s.includes('imagen')) return 'Aún no envío imágenes desde aquí, pero puedo ayudarte por WhatsApp 📲';
+      if(s.includes('llamar') || s.includes('telefono') || s.includes('telefonico'))
+        return `Si quieres, hacemos llamada por WhatsApp: <a class="btn" target="_blank" href="${CONFIG.whatsapp}">Llamar por WhatsApp</a>`;
+
       // despedida
-      if(s.includes('adios') || s.includes('adiós') || s.includes('bye'))
+      if(s.includes('adios') || s.includes('bye'))
         return (CONFIG.tone==='romantico')
           ? 'Te mando un abrazo grande 💫 Vuelve cuando quieras.'
           : (CONFIG.tone==='divertido')
@@ -166,10 +196,6 @@
           : (CONFIG.tone==='divertido')
             ? '¡De nada! 😎 ¿Seguimos con algo más?'
             : 'Con gusto. ¿Te apoyo con algo más?';
-      
-      // por qué no me escribes (broma)
-      if(s.includes('por que no me has escrito') || s.includes('por qué no me has escrito'))
-        return 'Ups 😅 Estaba afinando mis neuronas. ¡Aquí estoy contigo al 100%!'
 
       // default
       return (CONFIG.tone==='romantico')
@@ -195,8 +221,24 @@
       }, 700);
     }
 
+    function clearChat(){
+      localStorage.removeItem('kaelchat');
+      chat.innerHTML='';
+      addRow('Conversación reiniciada 🧼','bot');
+      greet();
+    }
+
+    function cycleTone(){
+      const order = ['romantico','divertido','neutral'];
+      const i = order.indexOf(CONFIG.tone);
+      CONFIG.tone = order[(i+1)%order.length];
+      addRow('Tono cambiado a: <b>'+CONFIG.tone.toUpperCase()+'</b> 🎙️','bot');
+    }
+
     sendBtn.addEventListener('click', send);
     input.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+    clearBtn.addEventListener('click', clearChat);
+    toneBtn.addEventListener('click', cycleTone);
 
     // init
     restore();
