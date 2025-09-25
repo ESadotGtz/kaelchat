@@ -1,95 +1,111 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kael Chat</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #141E30, #243B55);
-            color: #fff;
-            text-align: center;
-        }
-        header {
-            padding: 40px 20px;
-            background: rgba(0,0,0,0.4);
-        }
-        header h1 {
-            font-size: 3em;
-            margin: 0;
-            letter-spacing: 2px;
-        }
-        header p {
-            font-size: 1.2em;
-            margin-top: 10px;
-            color: #ccc;
-        }
-        .btn {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 15px 35px;
-            font-size: 1.1em;
-            font-weight: bold;
-            background: #ff9800;
-            color: #fff;
-            border-radius: 30px;
-            text-decoration: none;
-            transition: background 0.3s ease;
-        }
-        .btn:hover {
-            background: #e68900;
-        }
-        section {
-            padding: 80px 20px;
-        }
-        section h2 {
-            font-size: 2em;
-            margin-bottom: 20px;
-        }
-        section p {
-            font-size: 1.1em;
-            max-width: 600px;
-            margin: 0 auto 30px auto;
-            color: #ddd;
-        }
-        footer {
-            background: #0d1b2a;
-            padding: 20px;
-            font-size: 0.9em;
-            color: #aaa;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kael Chat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #0d1b2a, #1b263b);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #0f3460;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #f9d342;
+    }
+
+    #chat-box {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      border-top: 2px solid #0f3460;
+      border-bottom: 2px solid #0f3460;
+    }
+
+    .message {
+      margin: 8px 0;
+      padding: 10px 15px;
+      background: #162447;
+      border-radius: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .me {
+      background: #1f4068;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    footer {
+      display: flex;
+      padding: 10px;
+      background: #0f3460;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #f9d342;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ffc107;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>✨ Kael Chat ✨</h1>
-        <p>Your space for style, creativity, and conversations that matter.</p>
-        <a href="#" class="btn">Get Started</a>
-    </header>
+  <header>✨ Kael Chat ✨</header>
 
-    <section>
-        <h2>About Kael Chat</h2>
-        <p>
-            Kael Chat is more than a platform — it’s a lifestyle. 
-            Join a community where elegance meets technology, 
-            and where every conversation has a touch of sophistication.
-        </p>
-    </section>
+  <div id="chat-box"></div>
 
-    <section>
-        <h2>Features</h2>
-        <p>
-            💬 Real-time Chat <br>
-            🌍 Global Community <br>
-            🎨 Designed with Style in Mind
-        </p>
-    </section>
+  <footer>
+    <input type="text" id="message-input" placeholder="Escribe un mensaje..." />
+    <button onclick="sendMessage()">Enviar</button>
+  </footer>
 
-    <footer>
-        © 2025 Kael Chat. All rights reserved.
-    </footer>
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const input = document.getElementById("message-input");
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (text === "") return;
+
+      const msg = document.createElement("div");
+      msg.classList.add("message", "me");
+      msg.innerText = text;
+      chatBox.appendChild(msg);
+
+      input.value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
 </body>
 </html>
