@@ -5,75 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kael Chat</title>
   <style>
+    :root{
+      --bg1:#0d1b2a;
+      --bg2:#1b263b;
+      --brand:#0f3460;
+      --me:#1f4068;
+      --bot:#162447;
+      --accent:#f9d342;
+    }
+    *{box-sizing:border-box}
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(180deg, #0d1b2a, #1b263b);
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
       color: #fff;
       display: flex;
       flex-direction: column;
       height: 100vh;
     }
-
     header {
-      background: #0f3460;
-      padding: 15px;
+      background: var(--brand);
+      padding: 14px;
       text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #f9d342;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: .5px;
     }
-
     #chat-box {
       flex: 1;
-      padding: 15px;
+      padding: 20px 14px 10px;
       overflow-y: auto;
-      border-top: 2px solid #0f3460;
-      border-bottom: 2px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-
-    .message {
-      margin: 8px 0;
-      padding: 10px 15px;
-      background: #162447;
-      border-radius: 10px;
-      max-width: 70%;
+    .bubble{
+      max-width: 72%;
+      width: max-content;
+      padding: 10px 14px;
+      border-radius: 14px;
+      line-height: 1.25;
       word-wrap: break-word;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
     }
-
-    .me {
-      background: #1f4068;
-      margin-left: auto;
-      text-align: right;
-    }
-
+    .me{ margin-left: auto; background: var(--me); border-bottom-right-radius: 4px; }
+    .bot{ margin-right: auto; background: var(--bot); border-bottom-left-radius: 4px; }
+    .meta{opacity:.65; font-size:.75rem; margin-top:4px}
     footer {
       display: flex;
+      gap: 10px;
       padding: 10px;
-      background: #0f3460;
+      background: var(--brand);
     }
-
     input {
       flex: 1;
-      padding: 10px;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 1rem;
+      outline: none;
     }
-
     button {
-      margin-left: 10px;
-      padding: 10px 20px;
+      padding: 12px 18px;
       border: none;
-      border-radius: 8px;
-      background: #f9d342;
-      font-weight: bold;
+      border-radius: 10px;
+      background: var(--accent);
+      font-weight: 700;
       cursor: pointer;
     }
-
-    button:hover {
-      background: #ffc107;
-    }
+    button:hover { filter: brightness(1.05); }
   </style>
 </head>
 <body>
@@ -82,30 +83,60 @@
   <div id="chat-box"></div>
 
   <footer>
-    <input type="text" id="message-input" placeholder="Escribe un mensaje..." />
-    <button onclick="sendMessage()">Enviar</button>
+    <input type="text" id="message-input" placeholder="Escribe un mensaje..." autocomplete="off"/>
+    <button id="send-btn">Enviar</button>
   </footer>
 
   <script>
-    const chatBox = document.getElementById("chat-box");
-    const input = document.getElementById("message-input");
+    const chat = document.getElementById('chat-box');
+    const input = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
 
-    function sendMessage() {
-      const text = input.value.trim();
-      if (text === "") return;
-
-      const msg = document.createElement("div");
-      msg.classList.add("message", "me");
-      msg.innerText = text;
-      chatBox.appendChild(msg);
-
-      input.value = "";
-      chatBox.scrollTop = chatBox.scrollHeight;
+    function addBubble(text, who='me'){
+      const wrap = document.createElement('div');
+      const b = document.createElement('div');
+      b.className = 'bubble ' + who;
+      b.textContent = text;
+      wrap.appendChild(b);
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
+    function botReply(userText){
+      // Reglas simples del bot
+      const t = userText.trim().toLowerCase();
+      if(!t) return "¿Me repites, porfa?";
+      if(t.includes('hola') || t.includes('buenos')) return "Hola, soy Kael 🤖. ¡Qué gusto! ¿En qué te ayudo hoy?";
+      if(t.includes('quien eres') || t.includes('quién eres')) return "Soy Kael Bot, tu asistente de conversación.";
+      if(t.includes('gracias')) return "¡Con gusto! 💫";
+      if(t.includes('adios') || t.includes('adiós') || t.includes('bye')) return "¡Hasta pronto! 👋";
+      if(t.includes('como estas') || t.includes('cómo estás')) return "¡A todo dar! ¿Y tú? 😄";
+      // Respuesta por defecto
+      return "Interesante… cuéntame un poco más.";
+    }
+
+    function sendMessage(){
+      const text = input.value.trim();
+      if(!text) return;
+      addBubble(text, 'me');
+      input.value = '';
+      // Simular que el bot "piensa"
+      setTimeout(()=>{
+        addBubble("Escribiendo…", 'bot');
+        const typingBubble = chat.lastChild; // referencia al último wrap
+        setTimeout(()=>{
+          // Reemplaza el 'Escribiendo…' con la respuesta real
+          typingBubble.firstChild.textContent = botReply(text);
+          chat.scrollTop = chat.scrollHeight;
+        }, 600);
+      }, 250);
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+    // Mensaje de bienvenida
+    addBubble("Hola, soy Kael 🤖. ¡Bienvenido! Escríbeme algo y te contesto.", 'bot');
   </script>
 </body>
 </html>
