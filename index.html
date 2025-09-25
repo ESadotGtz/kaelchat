@@ -6,126 +6,199 @@
   <title>Kael Chat</title>
   <style>
     :root{
-      --bg1:#0d1b2a;
-      --bg2:#1b263b;
-      --brand:#0f3460;
-      --me:#1f4068;
-      --bot:#162447;
-      --accent:#f9d342;
-      --text:#e6e6e6;
+      --bg1:#0d1b2a; --bg2:#1b263b; --brand:#0f3460;
+      --me:#1f4068; --bot:#162447; --accent:#f9d342; --text:#e6e6e6;
+      --chip:#203a57;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
-      color:var(--text);
-      background:linear-gradient(180deg,var(--bg1),var(--bg2));
-      height:100vh; display:flex; flex-direction:column;
-    }
-    header{background:var(--brand); padding:14px; text-align:center; color:var(--accent); font-weight:700;}
+    body{margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; color:var(--text);
+      background:linear-gradient(180deg,var(--bg1),var(--bg2)); height:100vh; display:flex; flex-direction:column;}
+    header{background:var(--brand); padding:14px; text-align:center; color:var(--accent); font-weight:700; letter-spacing:.3px}
     #chat{flex:1; overflow-y:auto; padding:20px 14px; display:flex; flex-direction:column; gap:12px;}
-    .row{display:flex; width:100%}
-    .bubble{
-      max-width:72%; padding:12px 14px; border-radius:14px; line-height:1.28; box-shadow:0 2px 8px rgba(0,0,0,.18);
-      background:var(--bot);
-    }
-    .me .bubble{background:var(--me); margin-left:auto; border-bottom-right-radius:6px;}
-    .bot .bubble{background:var(--bot); margin-right:auto; border-bottom-left-radius:6px;}
+    .row{display:flex; width:100%; flex-direction:column; max-width:72%}
+    .row.me{margin-left:auto; align-items:flex-end}
+    .row.bot{margin-right:auto; align-items:flex-start}
+    .bubble{background:var(--bot); padding:12px 14px; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,.18); line-height:1.28}
+    .row.me .bubble{background:var(--me); border-bottom-right-radius:6px}
+    .row.bot .bubble{background:var(--bot); border-bottom-left-radius:6px}
     .meta{margin-top:4px; font-size:.72rem; opacity:.7}
-    footer{display:flex; gap:10px; padding:10px; background:var(--brand)}
+    footer{display:flex; gap:10px; padding:10px; background:var(--brand); align-items:center}
     input{flex:1; padding:12px; border:none; border-radius:10px; outline:none; font-size:1rem}
-    button{padding:12px 18px; border:none; border-radius:10px; background:var(--accent); font-weight:700; cursor:pointer}
+    button{padding:12px 18px; border:none; border-radius:10px; background:var(--accent); color:#000; font-weight:700; cursor:pointer}
     button:hover{filter:brightness(1.05)}
+    .chips{display:flex; gap:8px; flex-wrap:wrap; padding:6px 14px 0}
+    .chip{background:var(--chip); padding:8px 12px; border-radius:20px; cursor:pointer; font-size:.9rem; border:1px solid rgba(255,255,255,.08)}
+    .chip:hover{filter:brightness(1.08)}
+    a.btn{display:inline-block; margin-top:8px; background:var(--accent); color:#000; padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:700}
   </style>
 </head>
 <body>
   <header>✨ Kael Chat ✨</header>
+
   <div id="chat"></div>
+  <div class="chips" id="chips"></div>
+
   <footer>
     <input id="msg" type="text" placeholder="Escribe un mensaje..." autocomplete="off"/>
     <button id="send">Enviar</button>
   </footer>
+
   <script>
+    /************** CONFIGURACIÓN RÁPIDA **************/
+    const CONFIG = {
+      tone: 'romantico', // 'romantico' | 'divertido' | 'neutral'
+      email: 'hola@kaelchat.vip',
+      whatsapp: 'https://wa.me/525512345678', // cámbialo por tu número
+      calendly: 'https://calendly.com/kaelchat/30min', // cámbialo si tienes
+      basePais: 'México', // texto libre
+      moneda: 'MXN',
+      planes: [
+        { nombre: 'Básico', precio: '$199 MXN/mes', incluye: 'Chat 1 a 1, soporte por email' },
+        { nombre: 'Pro', precio: '$399 MXN/mes', incluye: 'Chat + personalización + soporte prioritario' },
+        { nombre: 'Empresas', precio: 'A cotizar', incluye: 'Soluciones a medida y SLAs' }
+      ]
+    };
+    /***************************************************/
+
     const chat = document.getElementById('chat');
     const input = document.getElementById('msg');
     const sendBtn = document.getElementById('send');
+    const chips = document.getElementById('chips');
+
+    const QUICK = [
+      '¿Dónde están?', 'Precios', 'Contacto', 'Agenda una cita', 'Hola', 'Gracias', 'Adiós'
+    ];
 
     function timeNow(){
-      const d=new Date();
-      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
-
     function addRow(text, who){
-      const row=document.createElement('div');
-      row.className = 'row ' + who;
-      const bubble=document.createElement('div');
-      bubble.className='bubble';
-      bubble.textContent=text;
-      const meta=document.createElement('div');
-      meta.className='meta';
-      meta.textContent = (who==='me'?'Tú':'Kael') + ' · ' + timeNow();
-      row.appendChild(bubble);
-      row.appendChild(meta);
-      chat.appendChild(row);
-      chat.scrollTop = chat.scrollHeight;
-      saveMessage(text, who, meta.textContent);
+      const row=document.createElement('div'); row.className='row '+who;
+      const bubble=document.createElement('div'); bubble.className='bubble'; bubble.innerHTML=text;
+      const meta=document.createElement('div'); meta.className='meta'; meta.textContent=(who==='me'?'Tú':'Kael')+' · '+timeNow();
+      row.appendChild(bubble); row.appendChild(meta); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
+      saveMessage({text, who, meta:meta.textContent});
       return row;
     }
-
-    function saveMessage(text, who, meta){
-      const data = JSON.parse(localStorage.getItem('kaelchat')||'[]');
-      data.push({text, who, meta});
-      if(data.length>200) data.shift();
+    function saveMessage(obj){
+      const data=JSON.parse(localStorage.getItem('kaelchat')||'[]'); data.push(obj); if(data.length>300) data.shift();
       localStorage.setItem('kaelchat', JSON.stringify(data));
     }
-
     function restore(){
-      const data = JSON.parse(localStorage.getItem('kaelchat')||'[]');
-      if(!data.length){
-        addRow('Hola, soy Kael 🤖. ¡Bienvenido! Escríbeme algo y te contesto.','bot');
-        return;
-      }
-      data.forEach(m=>{
-        const row=document.createElement('div'); row.className='row '+m.who;
-        const bubble=document.createElement('div'); bubble.className='bubble'; bubble.textContent=m.text;
-        const meta=document.createElement('div'); meta.className='meta'; meta.textContent=m.meta;
-        row.appendChild(bubble); row.appendChild(meta); chat.appendChild(row);
+      const data=JSON.parse(localStorage.getItem('kaelchat')||'[]');
+      if(!data.length){ greet(); return; }
+      data.forEach(m=>{ const r=addRow(m.text, m.who); r.querySelector('.meta').textContent=m.meta; });
+    }
+    function greet(){
+      const line = (CONFIG.tone==='romantico')
+        ? 'Hola, soy Kael 🤖. Qué gusto tenerte aquí ✨ ¿En qué puedo ayudarte hoy, corazón?'
+        : (CONFIG.tone==='divertido')
+          ? '¡Hey! Soy Kael 🤖. Vengo con buen ánimo y mejor wifi. ¿Qué hacemos hoy? 😎'
+          : 'Hola, soy Kael 🤖. ¿En qué puedo ayudarte hoy?';
+      addRow(line, 'bot');
+      renderChips();
+    }
+    function renderChips(){
+      chips.innerHTML='';
+      QUICK.forEach(q=>{
+        const c=document.createElement('div'); c.className='chip'; c.textContent=q;
+        c.onclick=()=>{ input.value=q; send(); }; chips.appendChild(c);
       });
-      chat.scrollTop = chat.scrollHeight;
     }
 
-    function botReply(t){
-      const s=t.toLowerCase();
-      if(s.includes('hola')||s.includes('buenos')||s.includes('buenas')) return '¡Hola! Soy Kael 🤖. ¿Cómo te va hoy?';
-      if(s.includes('como has estado')||s.includes('cómo has estado')) return '¡De maravilla! Ajustando mis circuitos ✨ ¿y tú?';
-      if(s.includes('por que no me has escrito')||s.includes('por qué no me has escrito')) return 'Ups 😅 Estaba afinando mis neuronas. ¡Aquí estoy contigo!';
-      if(s.includes('te quiero')||s.includes('te amo')) return 'Awww 🥹 yo también te quiero. ¡Gracias por tanto cariño!';
-      if(s.includes('quien eres')||s.includes('quién eres')) return 'Soy Kael Bot, tu asistente de conversación en kaelchat.vip.';
-      if(s.includes('gracias')) return '¡Con gusto! ¿Qué más te gustaría hacer?';
-      if(s.includes('como estas')||s.includes('cómo estás')) return '¡A todo dar! ¿Tú cómo te sientes hoy? 😄';
-      if(s.includes('adios')||s.includes('adiós')||s.includes('bye')) return '¡Hasta pronto! 👋 Cuando quieras, aquí estaré.';
-      return 'Interesante… cuéntame un poco más.';
+    function answerFor(text){
+      const s=text.toLowerCase();
+
+      // saludos y tono
+      if(s.match(/hola|buenas|buenos|qué onda|que onda/))
+        return (CONFIG.tone==='romantico')
+          ? 'Hola ✨ Qué alegría leerte. ¿Te cuento cómo puedo ayudarte, mi cielo?'
+          : (CONFIG.tone==='divertido')
+            ? '¡Holaaa! ¿List@ para algo épico? 😎'
+            : '¡Hola! ¿Cómo te ayudo hoy?';
+
+      if(s.includes('como estas') || s.includes('cómo estás'))
+        return (CONFIG.tone==='romantico')
+          ? 'Mejor ahora que te leo 💛 ¿Y tú cómo estás?'
+          : (CONFIG.tone==='divertido')
+            ? '¡A todo dar! Con café y 100% de batería. ¿Y tú?'
+            : 'Muy bien, gracias. ¿Tú cómo estás?';
+
+      // dónde / ubicación
+      if(s.includes('donde estan') || s.includes('dónde están') || s.includes('donde estas') || s.includes('dónde estás') || s.includes('ubicacion') || s.includes('ubicación'))
+        return `Operamos 100% en línea con base en ${CONFIG.basePais}. ¡Podemos ayudarte desde donde estés!`;
+
+      // precios
+      if(s.includes('precio') || s.includes('cost') || s.includes('plan'))
+        return (
+          '<b>Nuestros planes:</b><br>' +
+          CONFIG.planes.map(p => `• <b>${p.nombre}</b> — ${p.precio} <i>(${p.incluye})</i>`).join('<br>') +
+          '<br><br>¿Te gustaría que te recomiende uno?'
+        );
+
+      // contacto
+      if(s.includes('contacto') || s.includes('correo') || s.includes('email') || s.includes('soporte'))
+        return `Puedes escribirme a <a class="btn" href="mailto:${CONFIG.email}">${CONFIG.email}</a> ` +
+               `o enviarme WhatsApp aquí: <a class="btn" target="_blank" href="${CONFIG.whatsapp}">Abrir WhatsApp</a>`;
+
+      // agenda
+      if(s.includes('agenda') || s.includes('cita') || s.includes('reunion') || s.includes('reunión'))
+        return `¡Arreglado! Agenda una charla cuando te acomode: <a class="btn" target="_blank" href="${CONFIG.calendly}">Agendar ahora</a>`;
+
+      // cariño
+      if(s.includes('te quiero') || s.includes('te amo') || s.includes('love'))
+        return (CONFIG.tone==='romantico')
+          ? 'Awww 🥹 yo también te quiero. Gracias por tanto cariño. Aquí estoy para ti.'
+          : '¡Qué bonito! 💛 El cariño es mutuo.';
+
+      // despedida
+      if(s.includes('adios') || s.includes('adiós') || s.includes('bye'))
+        return (CONFIG.tone==='romantico')
+          ? 'Te mando un abrazo grande 💫 Vuelve cuando quieras.'
+          : (CONFIG.tone==='divertido')
+            ? '¡Chao pescao! 🐟 Vuelve pronto.'
+            : '¡Hasta pronto!';
+
+      // gracias
+      if(s.includes('gracias') || s.includes('thank'))
+        return (CONFIG.tone==='romantico')
+          ? 'Con todo mi corazón 💛 ¿Hay algo más en lo que te consienta?'
+          : (CONFIG.tone==='divertido')
+            ? '¡De nada! 😎 ¿Seguimos con algo más?'
+            : 'Con gusto. ¿Te apoyo con algo más?';
+      
+      // por qué no me escribes (broma)
+      if(s.includes('por que no me has escrito') || s.includes('por qué no me has escrito'))
+        return 'Ups 😅 Estaba afinando mis neuronas. ¡Aquí estoy contigo al 100%!'
+
+      // default
+      return (CONFIG.tone==='romantico')
+        ? 'Interesante… cuéntame un poquito más, porfa ✨'
+        : (CONFIG.tone==='divertido')
+          ? 'Cuenta, cuenta… me encanta el chisme profesional 😄'
+          : 'Interesante… cuéntame un poco más.';
     }
 
     function send(){
-      const text=input.value.trim();
-      if(!text) return;
-      addRow(text,'me');
-      input.value='';
-      // "escribiendo…"
-      const typing = addRow('Escribiendo…','bot');
+      const text=input.value.trim(); if(!text) return;
+      addRow(text,'me'); input.value='';
+
+      // efecto "escribiendo…"
+      const typing=addRow('Escribiendo…','bot');
       setTimeout(()=>{
-        typing.querySelector('.bubble').textContent = botReply(text);
+        const reply=answerFor(text);
+        typing.querySelector('.bubble').innerHTML = reply;
         chat.scrollTop = chat.scrollHeight;
-        // Actualizar el registro para que no quede "Escribiendo…" guardado
-        const data = JSON.parse(localStorage.getItem('kaelchat')||'[]');
-        if(data.length){ data[data.length-1].text = typing.querySelector('.bubble').textContent; localStorage.setItem('kaelchat', JSON.stringify(data)); }
+        // actualizar mensaje guardado
+        const data=JSON.parse(localStorage.getItem('kaelchat')||'[]');
+        if(data.length){ data[data.length-1].text = reply; localStorage.setItem('kaelchat', JSON.stringify(data)); }
       }, 700);
     }
 
     sendBtn.addEventListener('click', send);
     input.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
 
+    // init
     restore();
   </script>
 </body>
