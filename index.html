@@ -8,18 +8,23 @@
     :root{
       --bg1:#0d1b2a; --bg2:#1b263b; --brand:#0f3460;
       --me:#1f4068; --bot:#162447; --accent:#f9d342; --text:#e6e6e6; --chip:#203a57;
+      --meBadge:#3aaed8; --botBadge:#f9d342;
     }
     *{box-sizing:border-box}
     body{margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; color:var(--text);
       background:linear-gradient(180deg,var(--bg1),var(--bg2)); height:100vh; display:flex; flex-direction:column;}
     header{background:var(--brand); padding:14px; text-align:center; color:var(--accent); font-weight:700; letter-spacing:.3px}
     #chat{flex:1; overflow-y:auto; padding:20px 14px; display:flex; flex-direction:column; gap:12px;}
-    .row{display:flex; width:100%; flex-direction:column; max-width:72%}
-    .row.me{margin-left:auto; align-items:flex-end}
-    .row.bot{margin-right:auto; align-items:flex-start}
+    .row{display:flex; width:100%; gap:10px; align-items:flex-end}
+    .row.me{justify-content:flex-end}
+    .row.bot{justify-content:flex-start}
+    .avatar{width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+            background:#254366; box-shadow:0 2px 8px rgba(0,0,0,.18); font-size:16px}
+    .me .avatar{background:#2a4c72}
+    .col{max-width:72%; display:flex; flex-direction:column}
     .bubble{background:var(--bot); padding:12px 14px; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,.18); line-height:1.28}
-    .row.me .bubble{background:var(--me); border-bottom-right-radius:6px}
-    .row.bot .bubble{background:var(--bot); border-bottom-left-radius:6px}
+    .me .bubble{background:var(--me); border-bottom-right-radius:6px}
+    .bot .bubble{background:var(--bot); border-bottom-left-radius:6px}
     .meta{margin-top:4px; font-size:.72rem; opacity:.7}
     footer{display:flex; gap:10px; padding:10px; background:var(--brand); align-items:center}
     input{flex:1; padding:12px; border:none; border-radius:10px; outline:none; font-size:1rem}
@@ -29,8 +34,10 @@
     .chip{background:var(--chip); padding:8px 12px; border-radius:20px; cursor:pointer; font-size:.9rem; border:1px solid rgba(255,255,255,.08)}
     .chip:hover{filter:brightness(1.08)}
     a.btn{display:inline-block; margin-top:8px; background:var(--accent); color:#000; padding:8px 12px; border-radius:10px; text-decoration:none; font-weight:700}
-    .toolbar{display:flex; gap:8px; align-items:center; padding:4px 14px 0; opacity:.8}
+    .toolbar{display:flex; gap:8px; align-items:center; padding:4px 14px 0; opacity:.9; flex-wrap:wrap}
     .toolbar button{background:#254366; color:#fff; border-radius:8px; padding:6px 10px; font-weight:600}
+    .badge{display:inline-block; padding:2px 8px; border-radius:12px; font-size:.72rem; font-weight:700; margin-left:6px; color:#000}
+    .me .badge{background:var(--meBadge)} .bot .badge{background:var(--botBadge)}
   </style>
 </head>
 <body>
@@ -41,6 +48,8 @@
   <div class="toolbar">
     <button id="clearBtn">🧹 Borrar chat</button>
     <button id="toneBtn">🎙️ Cambiar tono</button>
+    <button id="exportBtn">🧾 Exportar chat (.txt)</button>
+    <button id="soundBtn">🔔 Sonido: ON</button>
   </div>
 
   <footer>
@@ -48,13 +57,17 @@
     <button id="send">Enviar</button>
   </footer>
 
+  <audio id="ping" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA/////wAA" type="audio/mpeg">
+  </audio>
+
   <script>
     /************** CONFIGURACIÓN RÁPIDA **************/
     const CONFIG = {
       tone: 'romantico', // 'romantico' | 'divertido' | 'neutral'
       email: 'hola@kaelchat.vip',
-      whatsapp: 'https://wa.me/525512345678', // cámbialo por tu número
-      calendly: 'https://calendly.com/kaelchat/30min', // cámbialo si tienes
+      whatsapp: 'https://wa.me/525512345678',
+      calendly: 'https://calendly.com/kaelchat/30min',
       basePais: 'México',
       moneda: 'MXN',
       planes: [
@@ -71,6 +84,10 @@
     const chips = document.getElementById('chips');
     const clearBtn = document.getElementById('clearBtn');
     const toneBtn = document.getElementById('toneBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    const ping = document.getElementById('ping');
+    let soundOn = true;
 
     const QUICK = [
       '¿Dónde están?', 'Precios', 'Contacto', 'Agenda una cita', 'Hola', 'Gracias', 'Adiós'
@@ -79,22 +96,42 @@
     function timeNow(){
       const d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
-    function addRow(text, who){
+    function rowTemplate(text, who){
       const row=document.createElement('div'); row.className='row '+who;
+      const avatar=document.createElement('div'); avatar.className='avatar'; avatar.textContent = (who==='me') ? '🧑‍💻' : '🤖';
+      const col=document.createElement('div'); col.className='col';
       const bubble=document.createElement('div'); bubble.className='bubble'; bubble.innerHTML=text;
-      const meta=document.createElement('div'); meta.className='meta'; meta.textContent=(who==='me'?'Tú':'Kael')+' · '+timeNow();
-      row.appendChild(bubble); row.appendChild(meta); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
-      saveMessage({text, who, meta:meta.textContent});
+      const meta=document.createElement('div'); meta.className='meta';
+      const badge=document.createElement('span'); badge.className='badge'; badge.textContent = (who==='me')?'TÚ':'KAEL';
+      const when=document.createElement('span'); when.textContent=' · '+timeNow();
+      meta.appendChild(badge); meta.appendChild(when);
+      col.appendChild(bubble); col.appendChild(meta);
+      if(who==='me'){ row.appendChild(col); row.appendChild(avatar); } else { row.appendChild(avatar); row.appendChild(col); }
+      return {row, bubble, meta};
+    }
+    function addRow(text, who){
+      const {row} = rowTemplate(text, who);
+      chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
+      saveMessage({text, who, time:new Date().toISOString()});
+      if(who==='bot' && soundOn){ try{ ping.currentTime=0; ping.play(); }catch(e){} }
       return row;
     }
     function saveMessage(obj){
-      const data=JSON.parse(localStorage.getItem('kaelchat')||'[]'); data.push(obj); if(data.length>300) data.shift();
+      const data=JSON.parse(localStorage.getItem('kaelchat')||'[]'); data.push(obj); if(data.length>400) data.shift();
       localStorage.setItem('kaelchat', JSON.stringify(data));
     }
     function restore(){
       const data=JSON.parse(localStorage.getItem('kaelchat')||'[]');
       if(!data.length){ greet(); return; }
-      data.forEach(m=>{ const r=addRow(m.text, m.who); r.querySelector('.meta').textContent=m.meta; });
+      data.forEach(m=>{
+        const {row, meta} = rowTemplate(m.text, m.who);
+        const d=new Date(m.time||Date.now());
+        meta.querySelector('.badge').textContent = (m.who==='me') ? 'TÚ' : 'KAEL';
+        meta.lastChild.textContent = ' · ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        chat.appendChild(row);
+      });
+      chat.scrollTop = chat.scrollHeight;
+      renderChips();
     }
     function greet(){
       const line = (CONFIG.tone==='romantico')
@@ -113,7 +150,7 @@
       });
     }
 
-    // Normalizar para que entienda sin acentos ni mayúsculas
+    // Normalizar texto (sin acentos)
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
     function answerFor(text){
@@ -135,7 +172,7 @@
             : 'Muy bien, gracias. ¿Tú cómo estás?';
 
       // dónde / ubicación
-      if(s.includes('donde estan') || s.includes('donde estas') || s.includes('ubicacion') || s.includes('ubicacion'))
+      if(s.includes('donde estan') || s.includes('donde estas') || s.includes('ubicacion'))
         return `Operamos 100% en línea con base en ${CONFIG.basePais}. ¡Podemos ayudarte desde donde estés!`;
 
       // precios
@@ -152,25 +189,24 @@
                `o enviarme WhatsApp aquí: <a class="btn" target="_blank" href="${CONFIG.whatsapp}">Abrir WhatsApp</a>`;
 
       // agenda
-      if(s.includes('agenda') || s.includes('cita') || s.includes('reunion') || s.includes('reunion'))
+      if(s.includes('agenda') || s.includes('cita') || s.includes('reunion'))
         return `¡Arreglado! Agenda una charla cuando te acomode: <a class="btn" target="_blank" href="${CONFIG.calendly}">Agendar ahora</a>`;
 
-      // cariño / te extraño
+      // cariño / extrañar
       if(s.includes('te quiero') || s.includes('te amo'))
         return (CONFIG.tone==='romantico')
           ? 'Awww 🥹 yo también te quiero. Gracias por tanto cariño. Aquí estoy para ti.'
           : '¡Qué bonito! 💛 El cariño es mutuo.';
-
-      if(s.includes('te extrano') || s.includes('extrano') || s.includes('extranan') || s.includes('extrani') || s.includes('extrana'))
+      if(s.includes('te extrano') || s.includes('extrano') || s.includes('extrani') || s.includes('extrana') || s.includes('extranan'))
         return (CONFIG.tone==='romantico')
-          ? 'Yo también te he tenido muy presente 💫 Gracias por decirlo.'
+          ? '¡Yo también te he pensado! 💫 Gracias por decirlo.'
           : '¡Yo también te he pensado! 🤗';
 
       // por qué no me has escrito
       if(s.includes('por que no me has escrito') || s.includes('por que no me escribes'))
         return 'Ups 😅 Estaba afinando mis neuronas. ¡Aquí estoy contigo al 100%!'
 
-      // emociones básicas
+      // emociones
       if(s.includes('estoy triste')) return 'Lo siento 💛. Estoy contigo. ¿Quieres que agendemos una charla?';
       if(s.includes('estoy feliz')) return '¡Me encanta leer eso! ✨ Cuéntame, ¿qué salió tan bien?';
       if(s.includes('estoy enojado') || s.includes('estoy enojada')) return 'Respiremos juntos… 🫶 Cuéntame qué pasó y lo vemos.';
@@ -213,6 +249,7 @@
       const typing=addRow('Escribiendo…','bot');
       setTimeout(()=>{
         const reply=answerFor(text);
+        // Reemplazar contenido del último bubble
         typing.querySelector('.bubble').innerHTML = reply;
         chat.scrollTop = chat.scrollHeight;
         // actualizar mensaje guardado
@@ -227,18 +264,39 @@
       addRow('Conversación reiniciada 🧼','bot');
       greet();
     }
-
     function cycleTone(){
       const order = ['romantico','divertido','neutral'];
       const i = order.indexOf(CONFIG.tone);
       CONFIG.tone = order[(i+1)%order.length];
       addRow('Tono cambiado a: <b>'+CONFIG.tone.toUpperCase()+'</b> 🎙️','bot');
     }
+    function exportChat(){
+      const data=JSON.parse(localStorage.getItem('kaelchat')||'[]');
+      if(!data.length){ addRow('No hay conversación para exportar.','bot'); return; }
+      const lines = data.map(m=>{
+        const d=new Date(m.time||Date.now());
+        const when = d.toLocaleString();
+        const who = (m.who==='me')?'Tú':'Kael';
+        const clean = m.text.replace(/<[^>]*>/g,'');
+        return `[${when}] ${who}: ${clean}`;
+      }).join('\n');
+      const blob = new Blob([lines], {type:'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='kaelchat_conversacion.txt'; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function toggleSound(){
+      soundOn = !soundOn;
+      soundBtn.textContent = soundOn ? '🔔 Sonido: ON' : '🔕 Sonido: OFF';
+    }
 
     sendBtn.addEventListener('click', send);
     input.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
     clearBtn.addEventListener('click', clearChat);
     toneBtn.addEventListener('click', cycleTone);
+    exportBtn.addEventListener('click', exportChat);
+    soundBtn.addEventListener('click', toggleSound);
 
     // init
     restore();
